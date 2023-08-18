@@ -7,11 +7,11 @@
 # Contributor: Ionut Biru <ibiru@archlinux.org>
 # Contributor: Jakub Schmidtke <sjakub@gmail.com>
 
-pkgname=firefox-wayland-hg
+pkgname=firefox-hg
 _pkgname=firefox-nightly
 pkgver=118.0a1+20230818.2+hf01044248c85
 pkgrel=1
-pkgdesc="Standalone web browser from mozilla.org (mozilla-unified hg, nightly branding, targeting wayland)"
+pkgdesc="Standalone web browser from mozilla.org (mozilla-unified hg, nightly branding, targeting wayland and x11)"
 url="https://www.mozilla.org/firefox/channel/#nightly"
 arch=(x86_64) 
 license=(
@@ -25,6 +25,8 @@ depends=(
   gtk3
   icu
   libpulse
+  libxss
+  libxt
   mime-types
   nss
   ttf-font
@@ -57,11 +59,7 @@ makedepends=(
   wasi-libc
   wasi-libc++
   wasi-libc++abi
-  # Cage, Pixman, Polkit, and XWayland are required for PGO:
-  cage
-  pixman
-  polkit
-  xorg-server-xwayland
+  xorg-server-xvfb
   yasm
   zip
 )
@@ -150,7 +148,7 @@ prepare() {
   # `ac_add_options --enable-lto' and ending with 'export RANLIB=llvm-ranlib`
   #
 
-  cat >.mozconfig <<END
+  cat >../mozconfig <<END
 ac_add_options --enable-application=browser
 mk_add_options MOZ_OBJDIR=${PWD@Q}/obj
 
@@ -163,7 +161,7 @@ ac_add_options --enable-linker=lld
 ac_add_options --disable-elf-hack
 ac_add_options --disable-bootstrap
 ac_add_options --with-wasi-sysroot=/usr/share/wasi-sysroot
-ac_add_options --enable-default-toolkit=cairo-gtk3-wayland-only
+ac_add_options --enable-default-toolkit=cairo-gtk3-x11-wayland
 
 export AR=llvm-ar
 export CC='clang'
@@ -225,7 +223,7 @@ build() {
   
   # Do 3-tier PGO
   echo "Building instrumented browser..."
-  cat >../mozconfig - <<END
+  cat >.mozconfig ../mozconfig - <<END
 ac_add_options --enable-profile-generate=cross
 END
   ./mach build
@@ -234,7 +232,7 @@ END
   ./mach package
   LLVM_PROFDATA=llvm-profdata \
     JARLOG_FILE="$PWD/jarlog" \
-    XDG_RUNTIME_DIR="$srcdir" WLR_BACKENDS=headless WLR_RENDERER=pixman cage \ 
+    xvfb-run -s "-screen 0 1920x1080x24 -nolisten local" \
     ./mach python build/pgo/profileserver.py
 
   stat -c "Profile data found (%s bytes)" merged.profdata
