@@ -9,7 +9,7 @@
 
 ## options
 # three-stage profile-guided optimization
-: ${_build_pgo:=true}
+: ${_build_pgo:=false}
 
 # pkgtype: hg or wayland-hg
 : ${_pkgtype:=hg}
