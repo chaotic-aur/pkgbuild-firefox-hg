@@ -14,6 +14,9 @@
 # reuse existing PGO profile
 : ${_build_pgo_reuse:=true}
 
+# package debug symbols for upload
+: ${_build_symbols:=false}
+
 # make latest mozilla-central nightly revision
 : ${_build_nightly:=false}
 
@@ -458,11 +461,14 @@ ObjectPath=/org/mozilla/${_pkgname//-/}/SearchProvider
 Version=2
 END
 
-  export SOCORRO_SYMBOL_UPLOAD_TOKEN_FILE="$startdir/.crash-stats-api.token"
-  if [[ -f $SOCORRO_SYMBOL_UPLOAD_TOKEN_FILE ]]; then
-    make -C obj uploadsymbols
-  else
-    cp -fvt "$startdir" obj/dist/*crashreporter-symbols.zip
+  # Package debug symbols for upload
+  if [[ "${_build_symbols::1}" == "t" ]] ; then
+    export SOCORRO_SYMBOL_UPLOAD_TOKEN_FILE="$startdir/.crash-stats-api.token"
+    if [[ -f $SOCORRO_SYMBOL_UPLOAD_TOKEN_FILE ]]; then
+      make -C obj uploadsymbols
+    else
+      cp -fvt "$startdir" obj/dist/*crashreporter-symbols.zip
+    fi
   fi
 }
 
